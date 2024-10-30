@@ -1,20 +1,45 @@
 open Why3
 open Craigar
 
-let make_prop_var s = Term.create_psymbol (Ident.id_fresh s) []
+let make_attribute name = Ident.create_attribute ("model_trace:" ^ name)
+
+let make_prop_var s =
+  let loc = Loc.user_position "myfile.my_ext" 28 0 28 1 in
+  let attrs = Ident.Sattr.singleton (make_attribute @@ "my_" ^ s) in
+  Term.create_psymbol (Ident.id_fresh ~loc ~attrs s) []
+
+type var = { v : Term.lsymbol; a : Term.term }
+
+let make_var s =
+  let v = make_prop_var s in
+  { v; a = Term.ps_app v [] }
+
+type fmla = { vars : Term.lsymbol list; f : Term.term }
+
+let fmla_to_task task_name fmla =
+  let goal_id = Decl.create_prsymbol (Ident.id_fresh task_name) in
+  let task =
+    List.fold_left (fun task v -> Task.add_param_decl task v) None fmla.vars
+  in
+  Task.add_prop_decl task Decl.Pgoal goal_id fmla.f
 
 let () =
-  let v_a = make_prop_var "A" in
-  let v_b = make_prop_var "B" in
-  let atom_a = Term.ps_app v_a [] in
-  let atom_b = Term.ps_app v_b [] in
-  let fmla = Term.t_implies (Term.t_and atom_a atom_b) atom_a in
+  let a = make_var "A" in
+  let b = make_var "B" in
+  (* let c = make_var "C" in *)
+  let f = Term.t_implies b.a (Term.t_and a.a b.a) in
+  let fmla =
+    let loc = Loc.user_position "myfile.my_ext" 42 28 42 91 in
+    let attrs = Ident.Sattr.singleton Ity.annot_attr in
+    { vars = [ a.v; b.v ]; f = Term.t_attr_set ~loc attrs f }
+  in
 
-  let goal_id = Decl.create_prsymbol (Ident.id_fresh "goal") in
-  let task = Task.add_param_decl None v_a in
-  let task = Task.add_param_decl task v_b in
-  let task = Task.add_prop_decl task Decl.Pgoal goal_id fmla in
+  let task = fmla_to_task "g" fmla in
   Format.printf "@[%a@]@." Pretty.print_task task;
 
-  Format.printf "@[%a@]@." (Call_provers.print_prover_result ?json:None)
-  @@ Solver.call task
+  Format.printf "@[%a@]@." (Call_provers.print_prover_result ~json:true)
+  @@ Solver.call task;
+  Format.printf "Model is %t@." (fun fmt ->
+      match Solver.get_model task with
+      | Some m -> Json_base.print_json fmt (Model_parser.json_model m)
+      | None -> Format.fprintf fmt "unavailable")
