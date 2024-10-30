@@ -1,0 +1,4 @@
+(executable
+ (public_name craigar)
+ (name main)
+ (libraries craigar why3))
