@@ -52,24 +52,31 @@ let make_fmla vars term =
   let attrs = Ident.Sattr.singleton Ity.annot_attr in
   { vars; f = Term.t_attr_set ~loc attrs term }
 
-let critical p1 p2 p3 p4 = Term.t_or_l [ p1.a; p2.a; p3.a; p4.a ]
-let desirable p1 p2 p3 p4 = Term.t_and_l [ p1.a; p2.a; p3.a; p4.a]
-(* let assumption p1 p2 p3 = Term.(t_and p1.a @@ t_and p2.a p3.a) *)
-let assumption p1 p2 = Term.t_and_l [ p1.a; p2.a ]
+let critical vs =
+  Term.t_or_l
+  @@ List.map (fun s -> (SMap.find s vs).a) [ "P1"; "P2"; "P3"; "P4" ]
 
-let make_full p1 p2 p3 p4 critical desirable assumption interpolant =
+let desirable vs =
+  Term.t_and_l
+  @@ List.map (fun s -> (SMap.find s vs).a) [ "P1"; "P2"; "P3"; "P4" ]
+
+let assumption vs =
+  Term.t_and_l @@ List.map (fun s -> (SMap.find s vs).a) [ "P1"; "P2"; "P5" ]
+
+let make_full vs ~critical ~desirable ~assumption ~interpolant =
+  let vars = List.map (fun p -> (snd p).v) @@ SMap.to_list vs in
   let a_to_i = Term.t_implies assumption interpolant in
   let d_to_i = Term.t_implies desirable interpolant in
   let i_to_c = Term.t_implies interpolant critical in
-  Term.(t_and a_to_i @@ t_and d_to_i i_to_c)
-  |> make_fmla [ p1.v; p2.v; p3.v; p4.v ]
+  make_fmla vars @@ Term.t_and_l [ a_to_i; d_to_i; i_to_c ]
 
 let term_from_cex vs model =
-  Term.t_and_l @@ List.map (
-    fun (n, v) ->
-      let vt = SMap.find n vs in
-      if v then vt.a else Term.t_not vt.a
-  ) model
+  Term.t_and_l
+  @@ List.map
+       (fun (n, v) ->
+         let vt = SMap.find n vs in
+         if v then vt.a else Term.t_not vt.a)
+       model
 
 let solve vs fmla =
   let task = fmla_to_task "g" fmla in
@@ -81,28 +88,23 @@ let solve vs fmla =
       let cex = extract_cex @@ Model_parser.json_model m in
       List.iter (fun (s, v) -> Format.printf "%s = %b@." s v) cex;
       Some (term_from_cex vs cex)
-  | None -> Format.printf "Model unavailable@."; None
+  | None ->
+      Format.printf "Model unavailable@.";
+      None
 
-let rec cegar_loop vs make_full interpolant =
-  let fmla = make_full interpolant in
+let rec cegar_loop vs make_full ~interpolant =
+  let fmla = make_full ~interpolant in
   match solve vs fmla with
   | None -> ()
   | Some cex ->
-    let interpolant = Term.t_or interpolant cex in
-    Format.printf "@[Interpolant:@.%a@]@." Pretty.print_term interpolant;
-    cegar_loop vs make_full interpolant
+      let interpolant = Term.t_or interpolant cex in
+      Format.printf "@[Interpolant:@.%a@]@." Pretty.print_term interpolant;
+      cegar_loop vs make_full ~interpolant
 
 let () =
-  let vs = make_vmap [ "P1"; "P2"; "P3"; "P4" ] in
-  let p1 = SMap.find "P1" vs in
-  let p2 = SMap.find "P2" vs in
-  let p3 = SMap.find "P3" vs in
-  let p4 = SMap.find "P4" vs in
-  let critical = critical p1 p2 p3 p4 in
-  let desirable = desirable p1 p2 p3 p4 in
-  let assumption = assumption p1 p2 in
-
-  let interpolant = desirable in
-  let make_full = make_full p1 p2 p3 p4 critical desirable assumption in
-  
-  cegar_loop vs make_full interpolant
+  let vs = make_vmap [ "P1"; "P2"; "P3"; "P4"; "P5" ] in
+  let critical = critical vs in
+  let desirable = desirable vs in
+  let assumption = assumption vs in
+  let make_full = make_full vs ~critical ~desirable ~assumption in
+  cegar_loop vs make_full ~interpolant:desirable
