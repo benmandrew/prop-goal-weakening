@@ -44,10 +44,8 @@ module Prover = struct
       (Driver.prove_task ~limit:Call_provers.empty_limit ~config:main
          ~command:t.cfg.command t.driver task)
 
-  let get_model t task =
-    let res = call t task in
-    (* Format.printf "%s\n" res.pr_output; *)
-    Check_ce.select_model_last_non_empty res.pr_models
+  let get_model res =
+    Check_ce.select_model_last_non_empty res.Call_provers.pr_models
 end
 
 (* let prover = Prover.make "Alt-Ergo" *)
@@ -55,4 +53,4 @@ let prover = Prover.make "Z3"
 
 (* let prover = Prover.make "CVC5" *)
 let call = Prover.call prover
-let get_model = Prover.get_model prover
+let get_model = Prover.get_model

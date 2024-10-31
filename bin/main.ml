@@ -14,6 +14,11 @@ let make_var s =
   let v = make_prop_var s in
   { v; a = Term.ps_app v [] }
 
+module SMap = Map.Make (String)
+
+let make_vmap vs =
+  List.fold_left (fun m v -> SMap.add v (make_var v) m) SMap.empty vs
+
 type fmla = { vars : Term.lsymbol list; f : Term.term }
 
 let fmla_to_task task_name fmla =
@@ -23,8 +28,6 @@ let fmla_to_task task_name fmla =
     List.fold_left (fun task v -> Task.add_param_decl task v) task fmla.vars
   in
   Task.add_prop_decl task Decl.Pgoal goal_id fmla.f
-
-(* let print_json j = Format.printf "%t@." (fun fmt -> Json_base.print_json fmt j) *)
 
 let extract_var json =
   let open Json_base in
@@ -44,23 +47,62 @@ let extract_cex json =
                 get_field j "model_elements" |> get_list |> List.map extract_var))
   |> List.flatten |> List.flatten
 
-let () =
-  let a = make_var "A" in
-  let b = make_var "B" in
-  (* let c = make_var "C" in *)
-  let f = Term.t_implies b.a (Term.t_and a.a b.a) in
-  let fmla =
-    let loc = Loc.user_position "" 0 0 0 0 in
-    let attrs = Ident.Sattr.singleton Ity.annot_attr in
-    { vars = [ a.v; b.v ]; f = Term.t_attr_set ~loc attrs f }
-  in
+let make_fmla vars term =
+  let loc = Loc.user_position "" 0 0 0 0 in
+  let attrs = Ident.Sattr.singleton Ity.annot_attr in
+  { vars; f = Term.t_attr_set ~loc attrs term }
 
+let critical p1 p2 p3 p4 = Term.t_or_l [ p1.a; p2.a; p3.a; p4.a ]
+let desirable p1 p2 p3 p4 = Term.t_and_l [ p1.a; p2.a; p3.a; p4.a]
+(* let assumption p1 p2 p3 = Term.(t_and p1.a @@ t_and p2.a p3.a) *)
+let assumption p1 p2 = Term.t_and_l [ p1.a; p2.a ]
+
+let make_full p1 p2 p3 p4 critical desirable assumption interpolant =
+  let a_to_i = Term.t_implies assumption interpolant in
+  let d_to_i = Term.t_implies desirable interpolant in
+  let i_to_c = Term.t_implies interpolant critical in
+  Term.(t_and a_to_i @@ t_and d_to_i i_to_c)
+  |> make_fmla [ p1.v; p2.v; p3.v; p4.v ]
+
+let term_from_cex vs model =
+  Term.t_and_l @@ List.map (
+    fun (n, v) ->
+      let vt = SMap.find n vs in
+      if v then vt.a else Term.t_not vt.a
+  ) model
+
+let solve vs fmla =
   let task = fmla_to_task "g" fmla in
-  Format.printf "@[%a@]@." Pretty.print_task task;
-
-  match Solver.get_model task with
+  (* Format.printf "@[%a@]@." Pretty.print_task task; *)
+  let res = Solver.call task in
+  match Solver.get_model res with
   | Some m ->
       Format.printf "Counterexample:@.";
-      extract_cex @@ Model_parser.json_model m
-      |> List.iter (fun (s, v) -> Format.printf "%s = %b@." s v)
-  | None -> Format.printf "Model unavailable@."
+      let cex = extract_cex @@ Model_parser.json_model m in
+      List.iter (fun (s, v) -> Format.printf "%s = %b@." s v) cex;
+      Some (term_from_cex vs cex)
+  | None -> Format.printf "Model unavailable@."; None
+
+let rec cegar_loop vs make_full interpolant =
+  let fmla = make_full interpolant in
+  match solve vs fmla with
+  | None -> ()
+  | Some cex ->
+    let interpolant = Term.t_or interpolant cex in
+    Format.printf "@[Interpolant:@.%a@]@." Pretty.print_term interpolant;
+    cegar_loop vs make_full interpolant
+
+let () =
+  let vs = make_vmap [ "P1"; "P2"; "P3"; "P4" ] in
+  let p1 = SMap.find "P1" vs in
+  let p2 = SMap.find "P2" vs in
+  let p3 = SMap.find "P3" vs in
+  let p4 = SMap.find "P4" vs in
+  let critical = critical p1 p2 p3 p4 in
+  let desirable = desirable p1 p2 p3 p4 in
+  let assumption = assumption p1 p2 in
+
+  let interpolant = desirable in
+  let make_full = make_full p1 p2 p3 p4 critical desirable assumption in
+  
+  cegar_loop vs make_full interpolant
