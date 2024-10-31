@@ -46,7 +46,7 @@ module Prover = struct
 
   let get_model t task =
     let res = call t task in
-    Format.printf "%s\n" res.pr_output;
+    (* Format.printf "%s\n" res.pr_output; *)
     Check_ce.select_model_last_non_empty res.pr_models
 end
 
