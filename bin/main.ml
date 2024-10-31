@@ -24,6 +24,26 @@ let fmla_to_task task_name fmla =
   in
   Task.add_prop_decl task Decl.Pgoal goal_id fmla.f
 
+(* let print_json j = Format.printf "%t@." (fun fmt -> Json_base.print_json fmt j) *)
+
+let extract_var json =
+  let open Json_base in
+  let name = get_field json "lsymbol" |> fun j -> get_string_field j "name" in
+  let value =
+    get_field json "value" |> fun j ->
+    get_field j "value_concrete_term" |> fun j -> get_bool_field j "val"
+  in
+  (name, value)
+
+let extract_cex json =
+  let open Json_base in
+  get_list json
+  |> List.map (fun j ->
+         get_field j "model" |> get_list
+         |> List.map (fun j ->
+                get_field j "model_elements" |> get_list |> List.map extract_var))
+  |> List.flatten |> List.flatten
+
 let () =
   let a = make_var "A" in
   let b = make_var "B" in
@@ -40,6 +60,7 @@ let () =
 
   match Solver.get_model task with
   | Some m ->
-      Format.printf "%t@." (fun fmt ->
-          Json_base.print_json fmt (Model_parser.json_model m))
+      Format.printf "Counterexample:@.";
+      extract_cex @@ Model_parser.json_model m
+      |> List.iter (fun (s, v) -> Format.printf "%s = %b@." s v)
   | None -> Format.printf "Model unavailable@."
