@@ -43,14 +43,15 @@ module Prover = struct
     Call_provers.wait_on_call
       (Driver.prove_task ~limit:Call_provers.empty_limit ~config:main
          ~command:t.cfg.command t.driver task)
-
-  let get_model res =
-    Check_ce.select_model_last_non_empty res.Call_provers.pr_models
 end
 
-(* let prover = Prover.make "Alt-Ergo" *)
-let prover = Prover.make "Z3"
+let prover = Prover.make "Alt-Ergo"
 
+(* let prover = Prover.make "Z3" *)
 (* let prover = Prover.make "CVC5" *)
 let call = Prover.call prover
-let get_model = Prover.get_model
+
+let get_model res =
+  Check_ce.select_model_last_non_empty res.Call_provers.pr_models
+
+let get_models res = List.map snd res.Call_provers.pr_models

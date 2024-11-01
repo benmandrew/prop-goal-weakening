@@ -40,12 +40,18 @@ let extract_var json =
 
 let extract_cex json =
   let open Json_base in
-  get_list json
-  |> List.map (fun j ->
-         get_field j "model" |> get_list
-         |> List.map (fun j ->
-                get_field j "model_elements" |> get_list |> List.map extract_var))
-  |> List.flatten |> List.flatten
+  let res =
+    get_list json
+    |> List.map (fun j ->
+           get_field j "model" |> get_list
+           |> List.map (fun j ->
+                  get_field j "model_elements"
+                  |> get_list |> List.map extract_var))
+    |> List.flatten
+  in
+  (* If assert triggers there may be more than one model returned *)
+  assert (List.length res == 1);
+  List.flatten res
 
 let make_fmla vars term =
   let loc = Loc.user_position "" 0 0 0 0 in
@@ -78,33 +84,38 @@ let term_from_cex vs model =
          if v then vt.a else Term.t_not vt.a)
        model
 
-let solve vs fmla =
+let solve i vs fmla =
   let task = fmla_to_task "g" fmla in
   (* Format.printf "@[%a@]@." Pretty.print_task task; *)
   let res = Solver.call task in
   match Solver.get_model res with
   | Some m ->
-      Format.printf "Counterexample:@.";
       let cex = extract_cex @@ Model_parser.json_model m in
-      List.iter (fun (s, v) -> Format.printf "%s = %b@." s v) cex;
+      Format.printf "Loop %d - CE:@." i;
+      List.iter (fun (n, v) -> Format.printf "%s=%d@." n (Bool.to_int v)) cex;
+      Format.printf "@.";
       Some (term_from_cex vs cex)
   | None ->
       Format.printf "Model unavailable@.";
       None
 
-let rec cegar_loop vs make_full ~interpolant =
+let rec cegar_loop i vs make_full ~interpolant =
   let fmla = make_full ~interpolant in
-  match solve vs fmla with
+  match solve i vs fmla with
   | None -> ()
   | Some cex ->
       let interpolant = Term.t_or interpolant cex in
-      Format.printf "@[Interpolant:@.%a@]@." Pretty.print_term interpolant;
-      cegar_loop vs make_full ~interpolant
+      (* Format.printf "@[Interpolant:@.%a@]@." Pretty.print_term interpolant; *)
+      cegar_loop (i + 1) vs make_full ~interpolant
 
 let () =
-  let vs = make_vmap [ "P1"; "P2"; "P3"; "P4"; "P5" ] in
+  let vs =
+    List.init 7 Fun.id
+    |> List.map (fun i -> "P" ^ string_of_int (i + 1))
+    |> make_vmap
+  in
   let critical = critical vs in
   let desirable = desirable vs in
   let assumption = assumption vs in
   let make_full = make_full vs ~critical ~desirable ~assumption in
-  cegar_loop vs make_full ~interpolant:desirable
+  cegar_loop 0 vs make_full ~interpolant:desirable
