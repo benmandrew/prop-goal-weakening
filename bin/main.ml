@@ -1,69 +1,50 @@
 open Why3
 open Craigar
 open Formula
-module SMap = Map.Make (String)
-
-let make_vmap vs = List.map (fun n -> (n, Var.make n)) vs |> SMap.of_list
-
-let critical vs =
-  Term.t_or_l
-  @@ List.map (fun s -> Var.atom (SMap.find s vs)) [ "P1"; "P2"; "P3"; "P4" ]
-
-let desirable vs =
-  Term.t_and_l
-  @@ List.map (fun s -> Var.atom (SMap.find s vs)) [ "P1"; "P2"; "P3"; "P4" ]
-
-let assumption vs =
-  Term.t_and_l
-  @@ List.map (fun s -> Var.atom (SMap.find s vs)) [ "P1"; "P2"; "P5" ]
-
-let make_full vs ~critical ~desirable ~assumption ~interpolant =
-  let vars = List.map (fun p -> Var.name (snd p)) @@ SMap.to_list vs in
-  let a_to_i = Term.t_implies assumption interpolant in
-  let d_to_i = Term.t_implies desirable interpolant in
-  let i_to_c = Term.t_implies interpolant critical in
-  make_fmla vars @@ Term.t_and_l [ a_to_i; d_to_i; i_to_c ]
 
 let term_from_cex vs model =
   Term.t_and_l
   @@ List.map
        (fun (n, v) ->
-         let vt = Var.atom (SMap.find n vs) in
+         let vt = Var.atom (Problem.SMap.find n vs) in
          if v then vt else Term.t_not vt)
        model
 
+let match_result i vs res =
+  match (res.Call_provers.pr_answer, Solver.get_model res) with
+  | Call_provers.Unknown _, Some m ->
+      let cex = Model.extract_cex m in
+      Format.printf "CE %d:@.  " i;
+      List.iter (fun (n, v) -> Format.printf "%s=%d " n (Bool.to_int v)) cex;
+      Format.printf "@.@.";
+      Some (term_from_cex vs cex)
+  | Unknown _, None ->
+      Format.printf "Model unavailable; invalid?@.";
+      None
+  | Valid, _ ->
+      Format.printf "Valid@.";
+      None
+  | _, _ -> None
+
 let solve i vs fmla =
   let task = fmla_to_task "g" fmla in
-  (* Format.printf "@[%a@]@." Pretty.print_task task; *)
   let res = Solver.call task in
-  match Solver.get_model res with
-  | Some m ->
-      let cex = Model.extract_cex m in
-      Format.printf "Loop %d - CE:@." i;
-      List.iter (fun (n, v) -> Format.printf "%s=%d@." n (Bool.to_int v)) cex;
-      Format.printf "@.";
-      Some (term_from_cex vs cex)
-  | None ->
-      Format.printf "Model unavailable@.";
-      None
+  match_result i vs res
 
-let rec cegar_loop i vs make_full ~interpolant =
-  let fmla = make_full ~interpolant in
+let rec cegar_loop i vs ~problem =
+  Problem.print problem;
+  let fmla = Problem.get_fmla vs ~problem in
   match solve i vs fmla with
-  | None -> ()
+  | None ->
+      Format.printf "@[Interpolant:@.  %a@]@.@." Pretty.print_term
+        (Term.t_or_l @@ Problem.TSet.to_list problem.Problem.interpolant)
   | Some cex ->
-      let interpolant = Term.t_or interpolant cex in
-      (* Format.printf "@[Interpolant:@.%a@]@." Pretty.print_term interpolant; *)
-      cegar_loop (i + 1) vs make_full ~interpolant
+      let problem = Problem.add_cex problem cex in
+      cegar_loop (i + 1) vs ~problem
 
 let () =
   let vs =
-    List.init 7 Fun.id
-    |> List.map (fun i -> "P" ^ string_of_int (i + 1))
-    |> make_vmap
+    Problem.make_vmap @@ List.init 10 (fun i -> "P" ^ string_of_int (i + 1))
   in
-  let critical = critical vs in
-  let desirable = desirable vs in
-  let assumption = assumption vs in
-  let make_full = make_full vs ~critical ~desirable ~assumption in
-  cegar_loop 0 vs make_full ~interpolant:desirable
+  let problem = Problem.init vs in
+  cegar_loop 0 vs ~problem
