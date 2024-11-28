@@ -14,7 +14,7 @@ let match_result i vs res =
   match (res.Call_provers.pr_answer, Solver.get_model res) with
   | Call_provers.Unknown _, Some m ->
       let cex = Model.extract_cex m in
-      Format.printf "CE %d:@.  " i;
+      Format.printf "Counterexample %d:@.  " i;
       List.iter (fun (n, v) -> Format.printf "%s=%d " n (Bool.to_int v)) cex;
       Format.printf "@.@.";
       Some (term_from_cex vs cex)

@@ -2,3 +2,8 @@
  (public_name craigar)
  (name main)
  (libraries craigar why3))
+
+(executable
+ (public_name lattice)
+ (name lattice)
+ (libraries craigar why3))

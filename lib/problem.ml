@@ -30,24 +30,32 @@ let make_atom vs s = Var.atom (SMap.find s vs)
    Term.t_or_l
    @@ List.map (make_atom vs) [ "P1"; "P2"; "P3"; "P4" ] *)
 
-let critical vs =
-  let atoms = List.map (make_atom vs) [ "P1"; "P2"; "P3"; "P4" ] in
-  let rec f l =
-    match l with
-    | [] -> []
-    | hd :: tl -> List.map (fun x -> Term.t_and hd x) tl @ f tl
-  in
-  Term.t_or_l @@ f atoms
+(* let critical vs =
+   let atoms = List.map (make_atom vs) [ "P1"; "P2"; "P3"; "P4" ] in
+   let rec f l =
+     match l with
+     | [] -> []
+     | hd :: tl -> List.map (fun x -> Term.t_and hd x) tl @ f tl
+   in
+   Term.t_or_l @@ f atoms *)
 
-let desirable vs =
-  Term.t_and_l @@ List.map (make_atom vs) [ "P1"; "P2"; "P3"; "P4" ]
+let critical vs = Term.t_or_l @@ List.map (make_atom vs) [ "P1"; "P2" ]
 
-let assumption vs = Term.t_and_l @@ List.map (make_atom vs) [ "P1"; "P2" ]
+(* let desirable vs =
+   Term.t_and_l
+   @@ List.map (make_atom vs) [ "P1"; "P2"; "P3"; "P4" ] *)
+
+let desirable vs = Term.t_and_l @@ List.map (make_atom vs) [ "P1"; "P2" ]
+
+(* let assumption vs = Term.t_and_l @@ List.map (make_atom vs) [ "P1"; "P2"; "P3"; "P4"; "P5"; "P6" ] *)
+
+let assumption vs = Term.t_or_l @@ List.map (make_atom vs) [ "P1"; "P2" ]
 
 let init vs =
   let desirable = desirable vs in
+  let assumption = assumption vs in
   {
-    assumption = assumption vs;
+    assumption;
     desirable;
     critical = critical vs;
     interpolant = TSet.singleton desirable;
