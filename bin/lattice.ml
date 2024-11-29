@@ -2,22 +2,54 @@ open Why3
 open Craigar
 open Lattice
 
+let a = Problem.make_atom vs
+
 let () =
-  (* Format.printf "n = %d\n" (List.length @@ Func.all); *)
-  let f =
-    Func.generate @@ Term.t_and_l
-    @@ List.map (Problem.make_atom vs) [ "P1"; "P2"; "P3" ]
+  let p1 = a "P1" in
+  let p2 = a "P2" in
+  (* let p3 = a "P3" in *)
+  let open Term in
+  let desirable = Func.generate @@ Problem.desirable vs in
+  let critical = Func.generate @@ Problem.critical vs in
+  let c = Func.generate @@ Problem.assumption vs in
+
+  let interpolant_chain =
+    let counterexamples =
+      List.map Func.generate
+        [
+          (* t_and_l [ t_not p1; p2 ];
+             t_and_l [ p1; t_not p2 ];
+             t_and_l [ p1; p2; t_not p3 ]; *)
+          (* t_and_l [ t_not p1; p2 ];
+             t_and_l [ p1; t_not p2 ]; *)
+          (* t_and_l [ p1; t_not p2 ];
+             t_and_l [ p1; p2; t_not p3 ]; *)
+          t_and_l [ p1; t_not p2 ];
+        ]
+    in
+    List.fold_left
+      (fun acc c ->
+        match acc with
+        | [] -> failwith "Bruh"
+        | hd :: _ -> Func.union c hd :: acc)
+      [ desirable ] counterexamples
   in
-  let f' =
-    Func.generate @@ Term.t_or_l
-    @@ List.map (Problem.make_atom vs) [ "P1"; "P2"; "P3" ]
-  in
-  let filter x = Func.implies f x && Func.implies x f' in
-  let all = List.filter filter Func.all in
+  List.iter
+    (fun f -> Format.printf "%s\n\n" @@ Func.to_string f)
+    interpolant_chain;
+
+  let f_interp_chain x = List.exists (Func.equal x) interpolant_chain in
+  let f_greenred x = Func.implies c x in
+
+  (* let filter x = Func.implies f x && Func.implies x f' in
+     let all = List.filter filter Func.all in *)
+
+  (* let all = Func.all in *)
+  let all = Func.interval desirable critical in
 
   (* Format.printf "%s" @@ Graphviz.to_string all; *)
   let ch = open_out "out/lattice.gv" in
-  output_string ch @@ Graphviz.to_string all;
+  output_string ch @@ Graphviz.to_string ~f_greenred ~f_interp_chain all;
   close_out ch
 
 (* Format.printf "Covers of\n%s\n\n" @@ Func.to_string f;

@@ -18,7 +18,7 @@ module A = struct
 
   let to_string t =
     let vars =
-      List.map (fun l -> if mem l t then l.Term.ls_name.id_string else "  ")
+      List.map (fun l -> if mem l t then l.Term.ls_name.id_string else "__")
       @@ to_list valid
     in
     String.concat " " vars
@@ -44,20 +44,26 @@ let rec eval a f =
 module Func = struct
   include Set.Make (A)
 
+  let implies f f' = subset f f'
+
   (** Generate function that's always true, i.e. valid *)
   let valid =
     A.fold
       (fun x ps -> fold (fun ss -> add (A.add x ss)) ps ps)
       A.valid (singleton A.empty)
 
-  (** Generate all possible functions *)
-  let all =
+  (** Generate all functions on the interval from [lower] to [upper] *)
+  let interval lower upper =
+    assert (implies lower upper);
+    let upper' = diff upper lower in
     fold
-      (fun x ps -> List.fold_left (fun acc ss -> add x ss :: acc) ps ps)
-      valid [ empty ]
+      (fun x acc -> List.fold_left (fun acc ss -> add x ss :: acc) acc acc)
+      upper' [ lower ]
+
+  (** Generate all possible functions *)
+  let all = interval empty valid
 
   let generate t = filter (fun a -> eval a t) valid
-  let implies f f' = for_all (fun a -> mem a f') f
 
   (** Covering relation for drawing Hasse diagrams *)
   let covers all f f' =
@@ -72,5 +78,5 @@ module Func = struct
   let to_string t =
     let a = List.sort A.compare @@ to_list t in
     String.concat "\n"
-    @@ List.map (fun x -> Format.sprintf "+ %s" @@ A.to_string x) a
+    @@ List.map (fun x -> Format.sprintf "%s" @@ A.to_string x) a
 end
