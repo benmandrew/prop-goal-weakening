@@ -4,7 +4,7 @@ open Formula
 
 let term_from_cex vs relevant_vs model =
   ignore relevant_vs;
-  (* let model = List.filter (fun (n, _) -> List.mem n relevant_vs) model in *)
+  let model = List.filter (fun (n, _) -> List.mem n relevant_vs) model in
   Term.t_and_l
   @@ List.map
        (fun (n, v) ->
@@ -12,11 +12,18 @@ let term_from_cex vs relevant_vs model =
          if v then vt else Term.t_not vt)
        model
 
+let remove_hidden_vs relevant_vs model =
+  List.filter (fun (n, _) -> List.mem n relevant_vs) model
+
 let match_result i vs relevant_vs res =
   match (res.Call_provers.pr_answer, Solver.get_model res) with
   | Call_provers.Unknown _, Some m ->
       let cex = Model.extract_cex m in
       Format.printf "Counterexample %d:@.  " i;
+      List.iter (fun (n, v) -> Format.printf "%s=%d " n (Bool.to_int v)) cex;
+      Format.printf "@.";
+      let cex = remove_hidden_vs relevant_vs cex in
+      Format.printf "Relevant counterexample:@.  ";
       List.iter (fun (n, v) -> Format.printf "%s=%d " n (Bool.to_int v)) cex;
       Format.printf "@.@.";
       Some (term_from_cex vs relevant_vs cex)
