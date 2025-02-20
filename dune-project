@@ -1,11 +1,11 @@
 (lang dune 3.16)
 
-(name craigar)
+(name weaken)
 
 (generate_opam_files true)
 
 (source
- (github benmandrew/craigar))
+ (github benmandrew/prop-goal-weakening))
 
 (authors "Ben Andrew")
 
@@ -13,14 +13,12 @@
 
 (license MIT)
 
-(documentation https://url/to/documentation)
+; (documentation https://url/to/documentation)
 
 (package
- (name craigar)
- (synopsis "A short synopsis")
- (description "A longer description")
- (depends ocaml dune)
- (tags
-  (topics "to describe" your project)))
+ (name weaken)
+ (synopsis "Propositional goal weakening")
+ (description "Propositional goal weakening")
+ (depends ocaml dune why3))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html

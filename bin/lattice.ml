@@ -1,30 +1,33 @@
 open Why3
-open Craigar
+open Weaken
 open Lattice
 
 let a = Problem.make_atom vs
+let desirable = Term.t_and_l @@ List.map a [ "P1"; "P2"; "P3" ]
+let critical = Term.t_or_l @@ List.map a [ "P1"; "P2"; "P3" ]
+let assumption = Term.t_and_l @@ List.map a [ "P1"; "P2" ]
 
 let () =
   let p1 = a "P1" in
   let p2 = a "P2" in
-  (* let p3 = a "P3" in *)
+  let p3 = a "P3" in
   let open Term in
-  let desirable = Func.generate @@ Problem.desirable vs in
-  let critical = Func.generate @@ Problem.critical vs in
-  let c = Func.generate @@ Problem.assumption vs in
+  let desirable = Func.generate desirable in
+  let critical = Func.generate critical in
+  let c = Func.generate assumption in
 
   let interpolant_chain =
     let counterexamples =
       List.map Func.generate
         [
-          (* t_and_l [ t_not p1; p2 ];
-             t_and_l [ p1; t_not p2 ];
-             t_and_l [ p1; p2; t_not p3 ]; *)
+          t_and_l [ t_not p1; p2 ];
+          t_and_l [ p1; t_not p2 ];
+          t_and_l [ p1; p2; t_not p3 ];
           (* t_and_l [ t_not p1; p2 ];
              t_and_l [ p1; t_not p2 ]; *)
           (* t_and_l [ p1; t_not p2 ];
              t_and_l [ p1; p2; t_not p3 ]; *)
-          t_and_l [ p1; t_not p2 ];
+          (* t_and_l [ p1; t_not p2 ]; *)
         ]
     in
     List.fold_left

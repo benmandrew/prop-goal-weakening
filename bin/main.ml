@@ -1,5 +1,5 @@
 open Why3
-open Craigar
+open Weaken
 open Formula
 
 let term_from_cex vs relevant_vs model =

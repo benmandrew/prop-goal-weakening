@@ -1,2 +1,2 @@
 (test
- (name test_craigar))
+ (name test_weaken))
