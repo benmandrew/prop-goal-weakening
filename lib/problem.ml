@@ -9,6 +9,8 @@ module TSet = Set.Make (struct
 end)
 
 type problem = {
+  (* variables : Var.t SMap.t;
+     hidden_variables : Var.t SMap.t; *)
   assumption : Term.term;
   desirable : Term.term;
   critical : Term.term;
@@ -39,24 +41,38 @@ let make_atom vs s = Var.atom (SMap.find s vs)
    in
    Term.t_or_l @@ f atoms *)
 
-let critical vs = Term.t_or_l @@ List.map (make_atom vs) [ "P1"; "P2"; "P3" ]
+let critical vs =
+  ignore vs;
+  Term.t_true
 
 (* let desirable vs =
    Term.t_and_l
    @@ List.map (make_atom vs) [ "P1"; "P2"; "P3"; "P4" ] *)
 
-let desirable vs = Term.t_and_l @@ List.map (make_atom vs) [ "P1"; "P2"; "P3" ]
+let desirable vs =
+  let highWind = make_atom vs "HighWind" in
+  let lowWind = make_atom vs "LowWind" in
+  let canLand = make_atom vs "CanLand" in
+  Term.(t_implies (t_or highWind lowWind) canLand)
 
 (* let assumption vs = Term.t_and_l @@ List.map (make_atom vs) [ "P1"; "P2"; "P3"; "P4"; "P5"; "P6" ] *)
 
 let assumption vs =
-  let p1 = make_atom vs "P1" in
-  let p2 = make_atom vs "P2" in
-  let p3 = make_atom vs "P3" in
-  Term.(t_or (t_and_l [ p1; p2; p3 ]) (t_and p1 (t_not p2)))
-(* Term.(t_and (t_or p1 p2) (t_or (t_not p1) (t_not p2))) *)
-
-(* Term.t_or_l @@ List.map (make_atom vs) [ "P1"; "P2" ] *)
+  let fourRotors = make_atom vs "FourRotors" in
+  let threeRotors = make_atom vs "ThreeRotors" in
+  let highWind = make_atom vs "HighWind" in
+  let lowWind = make_atom vs "LowWind" in
+  let canLand = make_atom vs "CanLand" in
+  let a = threeRotors in
+  let b =
+    Term.(
+      t_implies
+        (t_or
+           (t_and fourRotors (t_or highWind lowWind))
+           (t_and threeRotors lowWind))
+        canLand)
+  in
+  Term.t_and a b
 
 let init vs =
   let desirable = desirable vs in
