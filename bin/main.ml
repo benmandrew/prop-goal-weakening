@@ -41,11 +41,10 @@ let solve i vs relevant_vs fmla =
   match_result i vs relevant_vs res
 
 let rec cegar_loop i vs relevant_vs ~problem =
-  Problem.print problem;
   let fmla = Problem.get_fmla vs ~problem in
   match solve i vs relevant_vs fmla with
   | None ->
-      Format.printf "@[Interpolant:@.  %a@]@.@." Pretty.print_term
+      Format.printf "@[New interpolant:@.  %a@]@.@." Pretty.print_term
         (Term.t_or_l @@ Problem.TSet.to_list problem.Problem.interpolant)
   | Some cex ->
       let problem = Problem.add_cex problem cex in
@@ -58,4 +57,5 @@ let () =
   in
   let relevant_vs = [ "HighWind"; "LowWind"; "CanLand" ] in
   let problem = Problem.init vs in
+  Problem.print problem;
   cegar_loop 0 vs relevant_vs ~problem

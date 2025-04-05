@@ -2,9 +2,17 @@
 
 Implementation of the algorithm described in 'Weakening Goals in Logical Specifications'.
 
-To try out the example described in the paper, run
+## Run
+
+Run the Dockerfile from Docker Hub
 
 ```sh
-opam switch create ./ --deps-only
-dune exec weaken
+docker run benmandrew/prop-goal-weakening
+```
+
+Build and run the Dockerfile yourself
+
+```sh
+docker build -t prop-goal-weakening .
+docker run prop-goal-weakening
 ```

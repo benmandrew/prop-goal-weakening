@@ -45,10 +45,9 @@ module Prover = struct
          ~command:t.cfg.command t.driver task)
 end
 
-let prover = Prover.make "Alt-Ergo"
-
 (* let prover = Prover.make "Z3" *)
 (* let prover = Prover.make "CVC5" *)
+let prover = Prover.make "Alt-Ergo"
 let call = Prover.call prover
 
 let get_model res =
