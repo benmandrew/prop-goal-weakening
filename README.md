@@ -1,8 +1,8 @@
-# Propositional Goal Weakening
+# "Weakening Goals in Logical Specifications" — ABZ 2025 Doctoral Symposium Paper
 
-Implementation of the algorithm described in 'Weakening Goals in Logical Specifications'.
+## How to Run
 
-## Run
+When run, the program will automatically demonstrate weakening on the example detailed in the paper.
 
 Run the Dockerfile from Docker Hub
 
@@ -16,3 +16,7 @@ Build and run the Dockerfile yourself
 docker build -t prop-goal-weakening .
 docker run prop-goal-weakening
 ```
+
+## Publication
+
+> Ben M. Andrew. "Weakening Goals in Logical Specifications", ABZ 2025.
