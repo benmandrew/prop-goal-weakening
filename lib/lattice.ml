@@ -2,8 +2,8 @@ open Why3
 
 let vs = Problem.make_vmap @@ List.init 3 (fun i -> "P" ^ string_of_int (i + 1))
 
-(** Truth assignments to propositional literals;
-    if the literal exists in the set it's true, otherwise false *)
+(** Truth assignments to propositional literals; if the literal exists in the
+    set it's true, otherwise false *)
 module A = struct
   include Set.Make (struct
     type t = Term.lsymbol
@@ -39,8 +39,8 @@ let rec eval a f =
       Format.printf "'%a' not supported\n" Pretty.print_term f;
       raise Not_found
 
-(** Boolean function represented as a truth table;
-    if a set of truth assignments exists then it's true, otherwise false *)
+(** Boolean function represented as a truth table; if a set of truth assignments
+    exists then it's true, otherwise false *)
 module Func = struct
   include Set.Make (A)
 

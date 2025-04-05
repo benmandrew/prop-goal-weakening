@@ -41,7 +41,7 @@ module Prover = struct
 
   let call t task =
     Call_provers.wait_on_call
-      (Driver.prove_task ~limit:Call_provers.empty_limit ~config:main
+      (Driver.prove_task ~limits:Call_provers.empty_limits ~config:main
          ~command:t.cfg.command t.driver task)
 end
 
