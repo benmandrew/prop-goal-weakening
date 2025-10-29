@@ -1,0 +1,33 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: prop-goal-weakening
+message: Propositional Goal Weakening
+type: software
+authors:
+  - given-names: Ben M.
+    family-names: Andrew
+    email: benjamin.andrew@manchester.ac.uk
+    affiliation: University of Manchester
+    orcid: 'https://orcid.org/0009-0009-8910-5899'
+identifiers:
+  - type: doi
+    value: 10.1007/978-3-031-94533-5_22
+repository-code: 'https://github.com/benmandrew/prop-goal-weakening'
+url: 'https://www.benmandrew.com/'
+abstract: >-
+  Logical specifications are widely used to represent
+  software systems and their desired properties. Under
+  system degradation or environmental changes, commonly seen
+  in complex real-world robotic systems, these properties
+  may no longer hold and so traditional verification methods
+  will simply fail to construct a proof. However, weaker
+  versions of these properties do still hold and can be
+  useful for understanding the system’s behaviour in
+  uncertain conditions, as well as aiding compositional
+  verification. We present a counterexample-guided technique
+  for iteratively weakening properties, apply it to
+  propositional logic specifications, and discuss planned
+  extensions to state-based representations.
+license: MIT
