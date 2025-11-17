@@ -1,4 +1,4 @@
-(lang dune 3.16)
+(lang dune 3.20)
 
 (name weaken)
 
@@ -12,8 +12,6 @@
 (maintainers "Ben M. Andrew")
 
 (license MIT)
-
-; (documentation https://url/to/documentation)
 
 (package
  (name weaken)

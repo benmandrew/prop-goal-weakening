@@ -1,9 +1,11 @@
 (executable
  (public_name weaken)
  (name main)
- (libraries weaken why3))
+ (libraries weaken why3)
+ (package weaken))
 
 (executable
  (public_name lattice)
  (name lattice)
- (libraries weaken why3))
+ (libraries weaken why3)
+ (package weaken))

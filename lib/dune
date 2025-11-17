@@ -1,3 +1,4 @@
 (library
  (name weaken)
- (libraries why3))
+ (libraries why3)
+ (package weaken))
