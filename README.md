@@ -8,13 +8,13 @@
 
 When run, the program will automatically demonstrate weakening on the example detailed in the paper.
 
-Run the Dockerfile from Docker Hub
+Run the Docker image:
 
 ```sh
 docker run benmandrew/prop-goal-weakening
 ```
 
-Build and run the Dockerfile yourself
+Build and run the image yourself:
 
 ```sh
 docker build -t prop-goal-weakening .
